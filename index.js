@@ -85,6 +85,21 @@ app.get('/posts', async (req, res) => {
         err ? console.log(err) : res.send(result);
     });
 })
+app.get('/users', async (req, res) => {
+    db.query("SELECT * FROM users", (err, result) => {
+        err ? console.log(err) : res.send(result);
+    });
+})
+app.get('/bookings', async (req, res) => {
+    db.query("SELECT * FROM booking", (err, result) => {
+        err ? console.log(err) : res.send(result);
+    });
+})
+app.get('/reviews', async (req, res) => {
+    db.query("SELECT * FROM review", (err, result) => {
+        err ? console.log(err) : res.send(result);
+    });
+})
 
 
 
