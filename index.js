@@ -25,26 +25,26 @@ app.use(express.json());
 
 
 //clever-cloud
-// const db = mysql.createConnection({
-//     host: "btiot11do4ppnyrcgk4b-mysql.services.clever-cloud.com",
-//     user: "umwf88dbyqxjyapk",
-//     password: "4mifPJ6salRwz7tXqVQZ",
-//     database: "btiot11do4ppnyrcgk4b",
-//     connectionLimit: 10,
-//     acquireTimeout: 30000,
-// });
+const db = mysql.createConnection({
+    host: "btiot11do4ppnyrcgk4b-mysql.services.clever-cloud.com",
+    user: "umwf88dbyqxjyapk",
+    password: "4mifPJ6salRwz7tXqVQZ",
+    database: "btiot11do4ppnyrcgk4b",
+    connectionLimit: 10,
+    acquireTimeout: 30000,
+});
 
 
 //railway
-const db = mysql.createConnection({
-    host: "containers-us-west-50.railway.app",
-    user: "root",
-    password: "MkIgvNYCiL2gWIC3JdwZ",
-    database: "railway",
-    connectionLimit: 10,
-    acquireTimeout: 30000,
-    port: 5822
-});
+// const db = mysql.createConnection({
+//     host: "containers-us-west-50.railway.app",
+//     user: "root",
+//     password: "MkIgvNYCiL2gWIC3JdwZ",
+//     database: "railway",
+//     connectionLimit: 10,
+//     acquireTimeout: 30000,
+//     port: 5822
+// });
 
 
 db.connect((err) => {
