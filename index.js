@@ -48,8 +48,12 @@ const db = mysql.createConnection({
 
 
 db.connect((err) => {
-    if (err) console.log(err);
-    console.log('Connected to MySQL Server!');
+    if (err){
+        console.log("Error connecting to database");
+    }
+    else{
+        console.log("Connectedd to database");
+    }
 });
 
 
