@@ -1,155 +1,170 @@
 const express = require('express');
 const cors = require('cors');
 const mysql = require("mysql");
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const dotenv = require('dotenv');
+
+dotenv.config();
+
 const app = express();
 const port = 3100;
-
-
-
 
 app.use(cors());
 app.use(express.json());
 
-
-
-
-
-//localhost
-// const db = mysql.createConnection({
-//     host: "localhost",
-//     user: "root",
-//     password: "",
-//     database: "hourent",
-// });
-
-
-
-//clever-cloud
-const db = mysql.createConnection({
-    host: "btiot11do4ppnyrcgk4b-mysql.services.clever-cloud.com",
-    user: "umwf88dbyqxjyapk",
-    password: "4mifPJ6salRwz7tXqVQZ",
-    database: "btiot11do4ppnyrcgk4b",
+// Create a MySQL connection pool
+const pool = mysql.createPool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_DATABASE,
     connectionLimit: 10,
     acquireTimeout: 30000,
 });
 
+// Function to query the database
+const queryDatabase = (query, params) => {
+    return new Promise((resolve, reject) => {
+        pool.query(query, params, (err, results) => {
+            if (err) {
+                return reject(err);
+            }
+            resolve(results);
+        });
+    });
+};
 
-//railway
-// const db = mysql.createConnection({
-//     host: "containers-us-west-50.railway.app",
-//     user: "root",
-//     password: "MkIgvNYCiL2gWIC3JdwZ",
-//     database: "railway",
-//     connectionLimit: 10,
-//     acquireTimeout: 30000,
-//     port: 5822
-// });
-
-
-db.connect((err) => {
-    if (err){
-        console.log("Error connecting to database");
-    }
-    else{
-        console.log("Connectedd to database");
-    }
+// Default route
+app.get('/', async (req, res) => {
+    res.send('Server is running.');
 });
 
-
-
-app.get('/', async (req, res) => {
-    res.send('server is running.')
-})
-
-
+// Admin login route
 app.post('/admin-login', async (req, res) => {
     const { name, password } = req.body;
 
-    if (name && password) {
-        db.query('select * from admin where admin_name=?', [name], async (err, result) => {
-            if (err) {
-                return res.status(500).send();
-            }
-            const user = result[0];
-            console.log(user);
-            if (user === null) {
-                return res.send("user not found");
-            }
-            try {
-                if (await bcrypt.compare(password, user.pass)) {
-                    const payLoad = {
-                        id: user.id,
-                        email: user.email
-                    };
-                    const token = jwt.sign(payLoad, process.env.ACCESS_TOKEN_SECRET)
-                    return res.status(200).json({ message: true, token: token })
-                }
-                else {
-                    return res.json({ message: false })
-                }
-            }
-            catch {
-                res.send("Wrong User or Password")
-            }
-        })
+    if (!name || !password) {
+        return res.status(400).json({ message: 'Enter User Name and Password' });
     }
-    else {
-        res.send("Enter User Name And Password")
+
+    try {
+        const result = await queryDatabase('SELECT * FROM admin WHERE admin_name = ?', [name]);
+        const user = result[0];
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const passwordMatch = await bcrypt.compare(password, user.pass);
+        if (passwordMatch) {
+            const payLoad = { id: user.id, email: user.email };
+            const token = jwt.sign(payLoad, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+            return res.status(200).json({ message: true, token: token });
+        } else {
+            return res.status(401).json({ message: 'Wrong username or password' });
+        }
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: 'Internal server error' });
     }
-})
+});
 
-
+// Get all posts
 app.get('/posts', async (req, res) => {
-    db.query("SELECT * FROM post", (err, result) => {
-        err ? console.log(err) : res.send(result);
-    });
-})
+    try {
+        const result = await queryDatabase('SELECT * FROM post');
+        res.status(200).json(result);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// Get all users
 app.get('/users', async (req, res) => {
-    db.query("SELECT * FROM user", (err, result) => {
-        err ? console.log(err) : res.send(result);
-    });
-})
+    try {
+        const result = await queryDatabase('SELECT * FROM user');
+        res.status(200).json(result);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
 
+// Get all bookings
 app.get('/bookings', async (req, res) => {
-    db.query("SELECT * FROM booking", (err, result) => {
-        err ? console.log(err) : res.send(result);
-    });
-})
+    try {
+        const result = await queryDatabase('SELECT * FROM booking');
+        res.status(200).json(result);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
 
+// Delete a booking
 app.delete('/bookings', async (req, res) => {
     const { booking_id } = req.body;
-    console.log(booking_id);
-    db.query(`DELETE FROM booking WHERE 'booking_id'='${booking_id}'`, (err, result) => {
-        err ? console.log(err) : res.send(result);
-    });
-})
 
+    if (!booking_id) {
+        return res.status(400).json({ message: 'Booking ID is required' });
+    }
+
+    try {
+        const result = await queryDatabase('DELETE FROM booking WHERE booking_id = ?', [booking_id]);
+        res.status(200).json(result);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// Add a booking
 app.post('/bookings', async (req, res) => {
     const { user_id, vendor_id, post_id, status } = req.body;
-    console.log(req.body)
-    db.query(`INSERT INTO booking (user_id, vendor_id, post_id, booking_status) VALUES ('${user_id}', '${vendor_id}', '${post_id}', '${status}')`, (err, result) => {
-        err ? console.log(err) : res.send(result);;
-    });
-})
 
+    if (!user_id || !vendor_id || !post_id || !status) {
+        return res.status(400).json({ message: 'All fields are required' });
+    }
 
+    try {
+        const result = await queryDatabase('INSERT INTO booking (user_id, vendor_id, post_id, booking_status) VALUES (?, ?, ?, ?)', [user_id, vendor_id, post_id, status]);
+        res.status(201).json(result);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// Add a review
 app.post('/reviews', async (req, res) => {
     const { user_id, rating, review_com, postId, status } = req.body;
-    console.log(req.body)
-    db.query(`INSERT INTO review (user_id, review_rating, review_com, booking_status, post_id) VALUES ('${user_id}', '${rating}', '${review_com}', '${status}', '${postId}')`, (err, result) => {
-        err ? console.log(err) : res.send(result);
-    });
-})
 
+    if (!user_id || !rating || !review_com || !postId || !status) {
+        return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    try {
+        const result = await queryDatabase('INSERT INTO review (user_id, review_rating, review_com, booking_status, post_id) VALUES (?, ?, ?, ?, ?)', [user_id, rating, review_com, status, postId]);
+        res.status(201).json(result);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// Get all reviews
 app.get('/reviews', async (req, res) => {
-    db.query("SELECT * FROM review", (err, result) => {
-        err ? console.log(err) : res.send(result);
-    });
-})
-
-
+    try {
+        const result = await queryDatabase('SELECT * FROM review');
+        res.status(200).json(result);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
 
 app.listen(port, () => {
-    console.log(`Example app listening at http://localhost:${port}`)
-})
+    console.log(`App listening at http://localhost:${port}`);
+});
