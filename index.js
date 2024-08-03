@@ -17,7 +17,7 @@ app.use(express.json());
 
 
 // Connect to MongoDB using Mongoose
-const client = new MongoClient(process.env.MONGO_URI, {
+const client = new MongoClient(`${process.env.MONGO_URI}`, {
     serverApi: {
         version: ServerApiVersion.v1,
         strict: true,
