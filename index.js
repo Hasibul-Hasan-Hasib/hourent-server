@@ -1,8 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const dotenv = require('dotenv');
-dotenv.config();
 const app = express();
 const port = process.env.PORT || 3100;
 
@@ -14,16 +13,19 @@ app.use(express.json());
 
 
 
+const uri = `mongodb+srv://${process.env.DATABASE_USER}:${process.env.DATABASE_PASSWORD}@cluster0.fkohihs.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+
 
 
 // Connect to MongoDB using Mongoose
-const client = new MongoClient(`${process.env.MONGO_URI}`, {
+const client = new MongoClient(uri, {
     serverApi: {
         version: ServerApiVersion.v1,
         strict: true,
         deprecationErrors: true,
     }
 })
+
 
 
 
