@@ -1,5 +1,9 @@
 const { MongoClient, ServerApiVersion } = require('mongodb');
-const uri = process.env.MONGO_URI;
+
+// Support both MONGO_URI and DATABASE_USER/DATABASE_PASSWORD
+const uri = process.env.MONGO_URI || 
+    `mongodb+srv://${process.env.DATABASE_USER}:${process.env.DATABASE_PASSWORD}@cluster0.fkohihs.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+
 // Mongodb Client
 const client = new MongoClient(uri, {
     serverApi: {
@@ -15,7 +19,7 @@ const connectDB = async collection => {
         if (!isConnected) {
             await client.connect();
             isConnected = true;
-            console.log('Connected');
+            console.log('✅ Connected to MongoDB');
         }
 
         // Database
@@ -23,7 +27,7 @@ const connectDB = async collection => {
 
         return database.collection(collection);
     } catch (error) {
-        console.log(error.message);
+        console.error('❌ Database connection error:', error.message);
         process.exit(1);
     }
 };
